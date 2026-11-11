@@ -18,4 +18,16 @@ public class Work {
     public void addPreceding(Work precedingWork) {
         this.preceding.add(precedingWork);
     }
+
+    public String getName() {
+        return name;
+    }
+
+    public int getDuration() {
+        return duration;
+    }
+
+    public List<Work> getPreceding() {
+        return new ArrayList<>(preceding);
+    }
 }
