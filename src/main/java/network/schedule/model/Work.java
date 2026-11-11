@@ -7,7 +7,7 @@ public class Work {
 
     private String name;
     private int duration;
-    private List<Work> preceding;
+    private List<Dependency> dependencies;
     private Executor executor;
     private WorkStatus status;
 
@@ -22,12 +22,23 @@ public class Work {
 
         this.name = name;
         this.duration = duration;
-        this.preceding = new ArrayList<>();
+        this.dependencies = new ArrayList<>();
         this.status = WorkStatus.NOT_STARTED;
     }
 
-    public void addPreceding(Work precedingWork) {
-        this.preceding.add(precedingWork);
+    public void addPreceding(Work precedingWork, DependencyType type) {
+        if (precedingWork == this) {
+            throw new IllegalArgumentException("Работа не может зависеть от самой себя");
+        }
+
+        for(int i = 0; i < dependencies.size(); i++) {
+            if (dependencies.get(i).getPrecedingWork() == precedingWork && dependencies.get(i).getType() == type) {
+                throw new IllegalArgumentException("Такая зависимость уже существует");
+            }
+        }
+
+        Dependency depending = new Dependency(precedingWork, this, type);
+        this.dependencies.add(depending);
     }
 
     public String getName() {
@@ -38,8 +49,8 @@ public class Work {
         return duration;
     }
 
-    public List<Work> getPreceding() {
-        return new ArrayList<>(preceding);
+    public List<Dependency> getDependencies() {
+        return new ArrayList<>(dependencies);
     }
 
     public void setExecutor(Executor executor) {

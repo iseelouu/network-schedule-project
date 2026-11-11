@@ -11,6 +11,9 @@ public class Project {
     }
 
     public void addWork(Work work) {
+        if (work == null) {
+            throw new IllegalArgumentException("Нельзя добавить null вместо работы");
+        }
         if (!works.contains(work)) {
             this.works.add(work);
         }
