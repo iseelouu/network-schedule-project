@@ -22,4 +22,16 @@ public class Dependency {
         this.nextWork = nextWork;
         this.type = type;
     }
+
+    public Work getPrecedingWork() {
+        return precedingWork;
+    }
+
+    public Work getNextWork() {
+        return nextWork;
+    }
+
+    public DependencyType getType() {
+        return type;
+    }
 }
