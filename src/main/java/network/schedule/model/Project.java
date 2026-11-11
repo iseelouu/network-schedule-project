@@ -9,4 +9,18 @@ public class Project {
     public Project(){
         this.works = new ArrayList<>();
     }
+
+    public void addWork(Work work) {
+        if (!works.contains(work)) {
+            this.works.add(work);
+        }
+    }
+
+    public int countWork() {
+        return works.size();
+    }
+
+    public List<Work> getWorks() {
+        return new ArrayList<>(works);
+    }
 }
