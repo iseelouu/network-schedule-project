@@ -8,6 +8,7 @@ public class Work {
     private String name;
     private int duration;
     private List<Work> preceding;
+    private Executor executor;
 
     public Work(String name, int duration) {
         if (name == null || name.isBlank()) {
@@ -37,5 +38,17 @@ public class Work {
 
     public List<Work> getPreceding() {
         return new ArrayList<>(preceding);
+    }
+
+    public void setExecutor(Executor executor) {
+        if(executor == null) {
+            throw new IllegalArgumentException("Исполнитель не может отсутствовать");
+        }
+
+        this.executor = executor;
+    }
+
+    public Executor getExecutor() {
+        return executor;
     }
 }
