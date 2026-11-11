@@ -10,6 +10,14 @@ public class Work {
     private List<Work> preceding;
 
     public Work(String name, int duration) {
+        if (name == null || name.isBlank()) {
+            throw new IllegalArgumentException("Некорректное название работы");
+        }
+
+        if (duration < 0) {
+            throw new IllegalArgumentException("Длительность не может быть отрицательной");
+        }
+
         this.name = name;
         this.duration = duration;
         this.preceding = new ArrayList<>();
