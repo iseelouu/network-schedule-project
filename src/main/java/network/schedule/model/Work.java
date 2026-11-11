@@ -9,6 +9,7 @@ public class Work {
     private int duration;
     private List<Work> preceding;
     private Executor executor;
+    private WorkStatus status;
 
     public Work(String name, int duration) {
         if (name == null || name.isBlank()) {
@@ -22,6 +23,7 @@ public class Work {
         this.name = name;
         this.duration = duration;
         this.preceding = new ArrayList<>();
+        this.status = WorkStatus.NOT_STARTED;
     }
 
     public void addPreceding(Work precedingWork) {
@@ -44,11 +46,21 @@ public class Work {
         if(executor == null) {
             throw new IllegalArgumentException("Исполнитель не может отсутствовать");
         }
-
         this.executor = executor;
     }
 
     public Executor getExecutor() {
         return executor;
+    }
+
+    public WorkStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(WorkStatus status) {
+        if (status == null) {
+            throw new IllegalArgumentException("Состояние работы не может отсутствовать");
+        }
+        this.status = status;
     }
 }
