@@ -2,6 +2,8 @@ package network.schedule.model;
 
 import java.util.List;
 import java.util.ArrayList;
+import java.time.LocalDate;
+import java.util.Locale;
 
 public class Work {
 
@@ -10,6 +12,7 @@ public class Work {
     private List<Dependency> dependencies;
     private Executor executor;
     private WorkStatus status;
+    private LocalDate startDate;
 
     public Work(String name, int duration) {
         if (name == null || name.isBlank()) {
@@ -73,5 +76,17 @@ public class Work {
             throw new IllegalArgumentException("Состояние работы не может отсутствовать");
         }
         this.status = status;
+    }
+
+    public void setStartDate(LocalDate startDate) {
+        if (startDate == null) {
+            throw new IllegalArgumentException("Дата начала не может быть null");
+        }
+
+        this.startDate = startDate;
+    }
+
+    public LocalDate getStartDate() {
+        return startDate;
     }
 }
