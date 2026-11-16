@@ -3,7 +3,6 @@ package network.schedule.model;
 import java.util.List;
 import java.util.ArrayList;
 import java.time.LocalDate;
-import java.util.Locale;
 
 public class Work {
 
@@ -88,5 +87,17 @@ public class Work {
 
     public LocalDate getStartDate() {
         return startDate;
+    }
+
+    public LocalDate getEndDate(WorkCalendar calendar) {
+        if (calendar == null) {
+            throw new IllegalArgumentException("Рабочий календарь не может быть null");
+        }
+
+        if (startDate == null) {
+            throw new IllegalStateException("Дата начала работы ещё не задана");
+        }
+
+        return calendar.calculateEndDate(startDate, duration);
     }
 }
