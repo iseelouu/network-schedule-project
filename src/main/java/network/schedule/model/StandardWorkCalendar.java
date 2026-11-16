@@ -37,15 +37,19 @@ public class StandardWorkCalendar implements WorkCalendar {
                 annualHolidays.contains(MonthDay.from(date));
     }
 
+    @Override
     public  LocalDate calculateEndDate(LocalDate startDate, int duration) {
         if (startDate == null) {
             throw new IllegalArgumentException("Дата начала не может быть null");
         }
 
-        if (duration < 1) {
-            throw new IllegalArgumentException("Длительность работы должна быть больше нуля");
+        if (duration < 0) {
+            throw new IllegalArgumentException("Длительность работы не может быть отрицательной");
         }
 
+        if (duration == 0) {
+            return startDate;
+        }
         LocalDate currentDate = startDate;
         int workingDays = 0;
 
