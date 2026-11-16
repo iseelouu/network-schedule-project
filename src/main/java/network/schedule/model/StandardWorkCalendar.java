@@ -1,5 +1,6 @@
 package network.schedule.model;
 
+import java.util.List;
 import java.util.Set;
 import java.util.HashSet;
 import java.time.MonthDay;
@@ -50,6 +51,7 @@ public class StandardWorkCalendar implements WorkCalendar {
         if (duration == 0) {
             return startDate;
         }
+
         LocalDate currentDate = startDate;
         int workingDays = 0;
 
@@ -62,6 +64,19 @@ public class StandardWorkCalendar implements WorkCalendar {
         }
 
         return currentDate.minusDays(1);
+    }
+
+    @Override
+    public LocalDate getNextWorkingDay(LocalDate date) {
+        if (date == null) {
+            throw new IllegalArgumentException("Дата не может быть null");
+        }
+
+        LocalDate nextDate = date.plusDays(1);
+        if (!isWorkingDay(nextDate)) {
+            nextDate = getNextWorkingDay(nextDate);
+        }
+        return nextDate;
     }
 
 }
