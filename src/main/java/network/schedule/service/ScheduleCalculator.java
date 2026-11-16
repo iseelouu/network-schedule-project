@@ -3,14 +3,33 @@ package network.schedule.service;
 import network.schedule.model.Dependency;
 import network.schedule.model.Project;
 import network.schedule.model.Work;
+import network.schedule.model.WorkCalendar;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 
 public class ScheduleCalculator {
-    public List<Work> calculate(Project project) {
+    private WorkCalendar calendar;
+
+    public ScheduleCalculator(WorkCalendar calendar) {
+        if(calendar == null) {
+            throw new IllegalArgumentException("Календарь не может быть null");
+        }
+
+        this.calendar = calendar;
+    }
+    public List<Work> calculate(Project project, LocalDate projectStartDate) {
+        if (project == null) {
+            throw new IllegalArgumentException("Проект не может быть null");
+        }
+
+        if (projectStartDate == null) {
+            throw new IllegalArgumentException("Дата начала проекта не может быть null");
+        }
+
         List<Work> orderedWorks = new ArrayList<>();
         Map<Work, VisitState> visitStates = new HashMap<>();
         for (Work work : project.getWorks()) {
