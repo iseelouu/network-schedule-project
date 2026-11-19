@@ -43,6 +43,8 @@ public class ScheduleCalculator {
 
         Map<Work, WorkSchedule> schedules =
                 calculateEarlyDates(orderedWorks, projectStartDate);
+
+        calculateLateDates(orderedWorks, schedules);
         return new ArrayList<>(schedules.values());
     }
 
@@ -141,5 +143,89 @@ public class ScheduleCalculator {
 
         }
         return schedules;
+    }
+
+    private Map<Work, WorkSchedule> calculateLateDates(
+            List<Work> orderedWorks,
+            Map<Work, WorkSchedule> schedules) {
+
+        LocalDate projectFinish = calculateProjectFinish(orderedWorks, schedules);
+
+        for(int i = orderedWorks.size() - 1; i >= 0; i--) {
+            Work work = orderedWorks.get(i);
+            WorkSchedule schedule = schedules.get(work);
+            LocalDate lateFinish = projectFinish;
+            LocalDate lateStart = lateFinish;
+            for(int j = 1; j < work.getDuration(); j++) {
+                lateStart = calendar.getPreviousWorkingDay(lateStart);
+            }
+
+            for(Work nextWork : orderedWorks) {
+                for (Dependency dependency : nextWork.getDependencies()) {
+                    if (dependency.getPrecedingWork() == work) {
+                        WorkSchedule nextSchedule = schedules.get(nextWork);
+
+                        if (dependency.getType() == DependencyType.FINISH_TO_START) {
+                            LocalDate nextLateStart = nextSchedule.getLateStart();
+                            LocalDate precedingLateFinish = calendar.getPreviousWorkingDay(nextLateStart);
+                            if (precedingLateFinish.isBefore(lateFinish)) {
+                                lateFinish = precedingLateFinish;
+                                lateStart = lateFinish;
+                                for(int k= 1; k < work.getDuration(); k++) {
+                                    lateStart = calendar.getPreviousWorkingDay(lateStart);
+                                }
+                            }
+                        }
+
+                        if (dependency.getType() == DependencyType.START_TO_START) {
+                            LocalDate nextLateStart = nextSchedule.getLateStart();
+                            if (nextLateStart.isBefore(lateStart)) {
+                                lateStart = nextLateStart;
+                                lateFinish = calendar.calculateEndDate(lateStart, work.getDuration());
+                            }
+                        }
+
+                        if(dependency.getType() == DependencyType.FINISH_TO_FINISH) {
+                            LocalDate nextLateFinish = nextSchedule.getLateFinish();
+                            if(nextLateFinish.isBefore(lateFinish)){
+                                lateFinish = nextLateFinish;
+
+                                lateStart = lateFinish;
+                                for(int k= 1; k < work.getDuration(); k++) {
+                                    lateStart = calendar.getPreviousWorkingDay(lateStart);
+                                }
+                            }
+                        }
+
+                        if(dependency.getType() == DependencyType.START_TO_FINISH) {
+                            LocalDate nextLateFinish = nextSchedule.getLateFinish();
+                            if(nextLateFinish.isBefore(lateStart)) {
+                                lateStart = nextLateFinish;
+                                lateFinish = calendar.calculateEndDate(lateStart, work.getDuration());
+                            }
+                        }
+                    }
+                }
+            }
+            schedule.setLateDates(lateStart, lateFinish);
+        }
+
+        return schedules;
+    }
+
+    private LocalDate calculateProjectFinish(
+            List<Work> orderedWorks,
+            Map<Work, WorkSchedule> schedules) {
+
+        LocalDate projectFinish = null;
+        for(Work work : orderedWorks) {
+            WorkSchedule schedule = schedules.get(work);
+
+            LocalDate earlyFinish = schedule.getEarlyFinish();
+            if(projectFinish == null || earlyFinish.isAfter(projectFinish)) {
+                projectFinish = earlyFinish;
+            }
+        }
+        return projectFinish;
     }
 }
