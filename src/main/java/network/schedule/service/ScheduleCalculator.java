@@ -208,8 +208,8 @@ public class ScheduleCalculator {
                 }
             }
             schedule.setLateDates(lateStart, lateFinish);
+            schedule.setTotalFloat(calculateTotalFloat(schedule.getEarlyStart(), lateStart));
         }
-
         return schedules;
     }
 
@@ -227,5 +227,17 @@ public class ScheduleCalculator {
             }
         }
         return projectFinish;
+    }
+
+    private int calculateTotalFloat(LocalDate earlyStart, LocalDate lateStart) {
+        int totalFloat = 0;
+        LocalDate currentDate = earlyStart;
+
+        while(currentDate.isBefore(lateStart)) {
+            currentDate = calendar.getNextWorkingDay(currentDate);
+            totalFloat++;
+        }
+
+        return totalFloat;
     }
 }
