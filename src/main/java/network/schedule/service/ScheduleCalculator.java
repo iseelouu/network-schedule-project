@@ -1,9 +1,6 @@
 package network.schedule.service;
 
-import network.schedule.model.Dependency;
-import network.schedule.model.Project;
-import network.schedule.model.Work;
-import network.schedule.model.WorkCalendar;
+import network.schedule.model.*;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -21,7 +18,7 @@ public class ScheduleCalculator {
 
         this.calendar = calendar;
     }
-    public List<Work> calculate(Project project, LocalDate projectStartDate) {
+    public List<WorkSchedule> calculate(Project project, LocalDate projectStartDate) {
         if (project == null) {
             throw new IllegalArgumentException("Проект не может быть null");
         }
@@ -43,7 +40,10 @@ public class ScheduleCalculator {
                 visit(work, visitStates, path, orderedWorks);
             }
         }
-        return orderedWorks;
+
+        Map<Work, WorkSchedule> schedules =
+                calculateEarlyDates(orderedWorks, projectStartDate);
+        return new ArrayList<>(schedules.values());
     }
 
     private void visit(
@@ -81,4 +81,65 @@ public class ScheduleCalculator {
         orderedWorks.add(work);
     }
 
+    private Map<Work, WorkSchedule> calculateEarlyDates(
+            List<Work> orderedWorks,
+            LocalDate projectStartDate) {
+        Map<Work, WorkSchedule> schedules = new HashMap<>();
+
+        for (Work work : orderedWorks) {
+            LocalDate earlyStart = projectStartDate;
+            for (Dependency dependency : work.getDependencies()) {
+                WorkSchedule precedingSchedule = schedules.get(dependency.getPrecedingWork());
+                if (dependency.getType() == DependencyType.FINISH_TO_START) {
+                    LocalDate earlyFinish = precedingSchedule.getEarlyFinish();
+                    LocalDate nextDay = calendar.getNextWorkingDay(earlyFinish);
+                    if (nextDay.isAfter(earlyStart)) {
+                        earlyStart = nextDay; //ранняя дата начала
+                    }
+                }
+
+                if(dependency.getType() == DependencyType.START_TO_START) {
+                    LocalDate precedingEralyStart = precedingSchedule.getEarlyStart();
+                     if(precedingEralyStart.isAfter(earlyStart)) {
+                         earlyStart = precedingEralyStart;
+                     }
+                }
+
+                if(dependency.getType() == DependencyType.FINISH_TO_FINISH) {
+                    LocalDate precedingEarlyFinish = precedingSchedule.getEarlyFinish();
+                    LocalDate startByFinish = precedingEarlyFinish;
+
+                    for(int i = 1; i < work.getDuration(); i++) {
+                        startByFinish = calendar.getPreviousWorkingDay(startByFinish);
+                    }
+
+                    if(startByFinish.isAfter(earlyStart)) {
+                        earlyStart = startByFinish;
+                    }
+                }
+
+                if(dependency.getType() == DependencyType.START_TO_FINISH) {
+                    LocalDate precedingEarlyStart = precedingSchedule.getEarlyStart();
+                    LocalDate startByFinish = precedingEarlyStart;
+
+                    for(int i = 1; i < work.getDuration(); i++) {
+                        startByFinish = calendar.getPreviousWorkingDay(startByFinish);
+                    }
+
+                    if(startByFinish.isAfter(earlyStart)) {
+                        earlyStart = startByFinish;
+                    }
+                }
+            }
+
+            LocalDate earlyFinish = calendar.calculateEndDate(earlyStart, work.getDuration());
+
+            WorkSchedule schedule = new WorkSchedule(work);
+            schedule.setEarlyDates(earlyStart, earlyFinish);
+
+            schedules.put(work, schedule);
+
+        }
+        return schedules;
+    }
 }
