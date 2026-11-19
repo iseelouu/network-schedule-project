@@ -79,4 +79,17 @@ public class StandardWorkCalendar implements WorkCalendar {
         return nextDate;
     }
 
+    @Override
+    public LocalDate getPreviousWorkingDay(LocalDate date) {
+        if (date == null) {
+            throw new IllegalArgumentException("Дата не может быть null");
+        }
+
+        LocalDate previousDate = date.minusDays(1);
+        if(!isWorkingDay(previousDate)) {
+            previousDate = getPreviousWorkingDay(previousDate);
+        }
+
+        return previousDate;
+    }
 }
