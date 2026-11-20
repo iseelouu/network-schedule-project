@@ -24,6 +24,7 @@ public class ScheduleResult {
         }
 
         this.criticalPath = new ArrayList<>(criticalPath);
+
         this.schedules = new ArrayList<>(schedules);
         this.projectDuration = projectDuration;
     }
@@ -37,6 +38,8 @@ public class ScheduleResult {
     }
 
     public List<Work> getCriticalPath() {
-        return new ArrayList<>(criticalPath);
+        List<Work> result = new ArrayList<>(criticalPath);
+
+        return result;
     }
 }

@@ -8,9 +8,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 
+/**
+ * Выполняет расчёт сетевого графика работ проекта.
+ * Определяет ранние и поздние даты выполнения работ,
+ * временные резервы, критические пути и длительность проекта.
+ */
 public class ScheduleCalculator {
     private WorkCalendar calendar;
 
+    /**
+     * Создаёт калькулятор сетевого графика.
+     *
+     * @param calendar рабочий календарь, используемый при расчётах
+     * @throws IllegalArgumentException если календарь равен null
+     */
     public ScheduleCalculator(WorkCalendar calendar) {
         if(calendar == null) {
             throw new IllegalArgumentException("Календарь не может быть null");
@@ -18,7 +29,16 @@ public class ScheduleCalculator {
 
         this.calendar = calendar;
     }
-    public List<WorkSchedule> calculate(Project project, LocalDate projectStartDate) {
+
+    /**
+     * Рассчитывает сетевой график для указанного проекта.
+     *
+     * @param project проект, для которого выполняется расчёт
+     * @param projectStartDate дата начала проекта
+     * @return результат расчёта сетевого графика
+     * @throws IllegalArgumentException если проект или дата начала равны null
+     */
+    public ScheduleResult calculate(Project project, LocalDate projectStartDate) {
         if (project == null) {
             throw new IllegalArgumentException("Проект не может быть null");
         }
@@ -27,25 +47,44 @@ public class ScheduleCalculator {
             throw new IllegalArgumentException("Дата начала проекта не может быть null");
         }
 
+        if (project.getWorks().isEmpty()) {
+            return new ScheduleResult(
+                    new ArrayList<>(),
+                    0,
+                    new ArrayList<>()
+            );
+        }
+
         List<Work> orderedWorks = new ArrayList<>();
         Map<Work, VisitState> visitStates = new HashMap<>();
+
         for (Work work : project.getWorks()) {
             visitStates.put(work, VisitState.NOT_VISITED);
         }
 
         List<Work> path = new ArrayList<>();
-
         for (Work work : project.getWorks()) {
             if (visitStates.get(work) == VisitState.NOT_VISITED) {
                 visit(work, visitStates, path, orderedWorks);
             }
         }
 
-        Map<Work, WorkSchedule> schedules =
-                calculateEarlyDates(orderedWorks, projectStartDate);
 
+        Map<Work, WorkSchedule> schedules = calculateEarlyDates(orderedWorks, projectStartDate);
         calculateLateDates(orderedWorks, schedules);
-        return new ArrayList<>(schedules.values());
+
+        List<WorkSchedule> workSchedules = new ArrayList<>();
+        for (Work work : orderedWorks) {
+            workSchedules.add(schedules.get(work));
+        }
+
+        List<Work> criticalPath = calculateCriticalPath(workSchedules);
+
+        LocalDate projectFinish = calculateProjectFinish(orderedWorks, schedules);
+
+        int projectDuration = calculateProjectDuration(projectStartDate, projectFinish);
+
+        return new ScheduleResult(workSchedules, projectDuration, criticalPath);
     }
 
     private void visit(
@@ -56,12 +95,19 @@ public class ScheduleCalculator {
 
         VisitState state = visitStates.get(work);
 
+        if (state == null) {
+            throw new IllegalArgumentException(
+                    "Предшествующая работа отсутствует в проекте: " + work.getName()
+            );
+        }
+
         if (state == VisitState.VISITED) {
             return;
         }
 
         if (state == VisitState.VISITING) {
             int cycleStartIndex = path.indexOf(work);
+
             List<Work> cycleWorks = new ArrayList<>(
                     path.subList(cycleStartIndex, path.size())
             );
@@ -86,24 +132,30 @@ public class ScheduleCalculator {
     private Map<Work, WorkSchedule> calculateEarlyDates(
             List<Work> orderedWorks,
             LocalDate projectStartDate) {
+
         Map<Work, WorkSchedule> schedules = new HashMap<>();
 
         for (Work work : orderedWorks) {
             LocalDate earlyStart = projectStartDate;
+
+            while (!calendar.isWorkingDay(earlyStart)) {
+                earlyStart = calendar.getNextWorkingDay(earlyStart);
+            }
+
             for (Dependency dependency : work.getDependencies()) {
                 WorkSchedule precedingSchedule = schedules.get(dependency.getPrecedingWork());
                 if (dependency.getType() == DependencyType.FINISH_TO_START) {
                     LocalDate earlyFinish = precedingSchedule.getEarlyFinish();
                     LocalDate nextDay = calendar.getNextWorkingDay(earlyFinish);
                     if (nextDay.isAfter(earlyStart)) {
-                        earlyStart = nextDay; //ранняя дата начала
+                        earlyStart = nextDay;
                     }
                 }
 
                 if(dependency.getType() == DependencyType.START_TO_START) {
-                    LocalDate precedingEralyStart = precedingSchedule.getEarlyStart();
-                     if(precedingEralyStart.isAfter(earlyStart)) {
-                         earlyStart = precedingEralyStart;
+                    LocalDate precedingEarlyStart = precedingSchedule.getEarlyStart();
+                     if(precedingEarlyStart.isAfter(earlyStart)) {
+                         earlyStart = precedingEarlyStart;
                      }
                 }
 
@@ -142,6 +194,7 @@ public class ScheduleCalculator {
             schedules.put(work, schedule);
 
         }
+
         return schedules;
     }
 
@@ -154,6 +207,7 @@ public class ScheduleCalculator {
         for(int i = orderedWorks.size() - 1; i >= 0; i--) {
             Work work = orderedWorks.get(i);
             WorkSchedule schedule = schedules.get(work);
+
             LocalDate lateFinish = projectFinish;
             LocalDate lateStart = lateFinish;
             for(int j = 1; j < work.getDuration(); j++) {
@@ -163,6 +217,7 @@ public class ScheduleCalculator {
             for(Work nextWork : orderedWorks) {
                 for (Dependency dependency : nextWork.getDependencies()) {
                     if (dependency.getPrecedingWork() == work) {
+
                         WorkSchedule nextSchedule = schedules.get(nextWork);
 
                         if (dependency.getType() == DependencyType.FINISH_TO_START) {
@@ -207,9 +262,11 @@ public class ScheduleCalculator {
                     }
                 }
             }
+
             schedule.setLateDates(lateStart, lateFinish);
             schedule.setTotalFloat(calculateTotalFloat(schedule.getEarlyStart(), lateStart));
         }
+
         return schedules;
     }
 
@@ -239,5 +296,67 @@ public class ScheduleCalculator {
         }
 
         return totalFloat;
+    }
+
+    private List<Work> calculateCriticalPath(
+            List<WorkSchedule> workSchedules) {
+
+        List<Work> path = new ArrayList<>();
+
+        for (WorkSchedule schedule : workSchedules) {
+            if (schedule.getTotalFloat() == 0) {
+                findCriticalPath(
+                        schedule.getWork(),
+                        path,
+                        workSchedules
+                );
+                break;
+            }
+        }
+
+        return path;
+    }
+
+    private void findCriticalPath(
+            Work currentWork,
+            List<Work> path,
+            List<WorkSchedule> workSchedules) {
+
+        path.add(currentWork);
+
+        for (WorkSchedule schedule : workSchedules) {
+            Work nextWork = schedule.getWork();
+
+            if (schedule.getTotalFloat() != 0) {
+                continue;
+            }
+
+            for (Dependency dependency : nextWork.getDependencies()) {
+                if (dependency.getPrecedingWork() == currentWork) {
+                    findCriticalPath(
+                            nextWork,
+                            path,
+                            workSchedules
+                    );
+                    return;
+                }
+            }
+        }
+    }
+
+    private int calculateProjectDuration(LocalDate projectStartDate,
+                                         LocalDate projectFinish) {
+        int duration = 0;
+        LocalDate currentDate = projectStartDate;
+
+        while (!currentDate.isAfter(projectFinish)) {
+            if(calendar.isWorkingDay(currentDate)) {
+                duration++;
+            }
+
+            currentDate = currentDate.plusDays(1);
+        }
+
+        return duration;
     }
 }

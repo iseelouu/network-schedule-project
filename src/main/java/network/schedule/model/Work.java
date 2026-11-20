@@ -4,6 +4,11 @@ import java.util.List;
 import java.util.ArrayList;
 import java.time.LocalDate;
 
+/**
+ * Представляет работу, входящую в состав проекта.
+ * Содержит название, продолжительность, зависимости,
+ * исполнителя, статус и дату начала работы.
+ */
 public class Work {
 
     private String name;
@@ -13,6 +18,14 @@ public class Work {
     private WorkStatus status;
     private LocalDate startDate;
 
+    /**
+     * Создаёт новую работу.
+     *
+     * @param name название работы
+     * @param duration продолжительность работы в рабочих днях
+     * @throws IllegalArgumentException если название некорректно
+     * или продолжительность отрицательная
+     */
     public Work(String name, int duration) {
         if (name == null || name.isBlank()) {
             throw new IllegalArgumentException("Некорректное название работы");
@@ -28,7 +41,19 @@ public class Work {
         this.status = WorkStatus.NOT_STARTED;
     }
 
+    /**
+     * Добавляет предшествующую работу и тип зависимости.
+     *
+     * @param precedingWork предшествующая работа
+     * @param type тип зависимости
+     * @throws IllegalArgumentException если работа равна null,
+     * является самой собой или уже добавлена
+     */
     public void addPreceding(Work precedingWork, DependencyType type) {
+        if (precedingWork == null) {
+            throw new IllegalArgumentException("Предшествующая работа не может быть null");
+        }
+
         if (precedingWork == this) {
             throw new IllegalArgumentException("Работа не может зависеть от самой себя");
         }
@@ -51,6 +76,11 @@ public class Work {
         return duration;
     }
 
+    /**
+     * Возвращает список зависимостей работы.
+     *
+     * @return копия списка зависимостей
+     */
     public List<Dependency> getDependencies() {
         return new ArrayList<>(dependencies);
     }
@@ -89,15 +119,4 @@ public class Work {
         return startDate;
     }
 
-    public LocalDate getEndDate(WorkCalendar calendar) {
-        if (calendar == null) {
-            throw new IllegalArgumentException("Рабочий календарь не может быть null");
-        }
-
-        if (startDate == null) {
-            throw new IllegalStateException("Дата начала работы ещё не задана");
-        }
-
-        return calendar.calculateEndDate(startDate, duration);
-    }
 }
